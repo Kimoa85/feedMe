@@ -54,7 +54,7 @@
           <p class="new-link-label">🎉 Your link is ready! Copy it and share:</p>
           <div class="link-row">
             <input type="text" id="generatedLink" value="<%= baseUrl %>/f/<%= newToken %>" readonly>
-            <button onclick="copyLink()" class="btn btn-copy" id="copyBtn">Copy 🌸</button>
+            <button class="btn btn-copy" id="copyBtn">Copy 🌸</button>
           </div>
           <p class="link-hint">💡 This link can only be used once. Generate a new one for each person.</p>
         </div>
@@ -159,6 +159,11 @@
   </main>
 
   <script>
+    const copyBtn = document.getElementById('copyBtn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', copyLink);
+    }
+
     async function copyLink() {
       const input = document.getElementById('generatedLink');
       const btn = document.getElementById('copyBtn');

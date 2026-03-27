@@ -162,7 +162,7 @@
             <span class="checkbox-label">🔗 I can connect you with someone useful</span>
           </label>
           <label class="support-checkbox support-other-toggle">
-            <input type="checkbox" id="otherCheck" onchange="toggleOther(this)">
+            <input type="checkbox" id="otherCheck">
             <span class="checkbox-label">✏️ Something else…</span>
           </label>
         </div>
@@ -205,10 +205,9 @@
   </div>
 
   <script>
-    function toggleOther(checkbox) {
-      const div = document.getElementById('otherInput');
-      div.classList.toggle('hidden', !checkbox.checked);
-    }
+    document.getElementById('otherCheck').addEventListener('change', function() {
+      document.getElementById('otherInput').classList.toggle('hidden', !this.checked);
+    });
   </script>
 </body>
 </html>
