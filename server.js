@@ -52,7 +52,7 @@ app.post('/login', async (req, res) => {
     return res.render('login', { error: 'Please enter your email and password.', success: null, tab: 'login' });
 
   const user = await db.getUserByEmail(email.trim().toLowerCase());
-  if (!user)
+  if (!user || !user.password_hash)
     return res.render('login', { error: 'No account found with that email.', success: null, tab: 'login' });
 
   const match = await bcrypt.compare(password, user.password_hash);
