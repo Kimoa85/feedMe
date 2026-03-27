@@ -276,9 +276,13 @@ app.post('/f/:token', async (req, res) => {
 // ─── START ──────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 
-db.init().then(() => {
-  app.listen(PORT, () => console.log(`🌸 feedMe running on port ${PORT}`));
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  db.init().then(() => {
+    app.listen(PORT, () => console.log(`🌸 feedMe running on port ${PORT}`));
+  }).catch(err => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = app;
