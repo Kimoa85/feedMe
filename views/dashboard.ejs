@@ -161,16 +161,32 @@
   <script>
     function copyLink() {
       const input = document.getElementById('generatedLink');
-      input.select();
-      navigator.clipboard.writeText(input.value).then(() => {
-        const btn = document.getElementById('copyBtn');
+      const btn = document.getElementById('copyBtn');
+
+      function markCopied() {
         btn.textContent = 'Copied! ✅';
         btn.classList.add('copied');
         setTimeout(() => {
           btn.textContent = 'Copy 🌸';
           btn.classList.remove('copied');
         }, 2500);
-      });
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(input.value).then(markCopied).catch(() => {
+          fallbackCopy(input);
+          markCopied();
+        });
+      } else {
+        fallbackCopy(input);
+        markCopied();
+      }
+    }
+
+    function fallbackCopy(input) {
+      input.focus();
+      input.select();
+      document.execCommand('copy');
     }
   </script>
 </body>
