@@ -6,6 +6,11 @@ const pool = new Pool({
 });
 
 async function init() {
+  // Make it_would_help nullable if it was created as NOT NULL
+  await pool.query(`
+    ALTER TABLE feedback_submissions ALTER COLUMN it_would_help DROP NOT NULL
+  `).catch(() => {}); // silently ignore if table doesn't exist yet or already nullable
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -34,7 +39,7 @@ async function init() {
       looking_ahead TEXT,
       anything_else TEXT,
       submitter_name TEXT,
-      it_would_help TEXT NOT NULL,
+      it_would_help TEXT,
       support_offers TEXT[],
       support_other TEXT,
       submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

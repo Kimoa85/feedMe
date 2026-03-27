@@ -181,7 +181,7 @@ app.post('/f/:token', async (req, res) => {
   } = req.body;
 
   if (!what_working_well || !strengths || !growth_opportunities ||
-      !actionable_suggestions || !collaboration || !looking_ahead || !it_would_help) {
+      !actionable_suggestions || !collaboration || !looking_ahead) {
     const recipient = await db.getUserById(link.user_id);
     return res.render('feedback', {
       token: req.params.token, recipient,
