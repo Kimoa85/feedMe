@@ -9,7 +9,8 @@ async function init() {
   // Migrations for existing tables
   await pool.query(`ALTER TABLE feedback_submissions ALTER COLUMN it_would_help DROP NOT NULL`).catch(() => {});
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT`).catch(() => {});
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE`).catch(() => {});
+  await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS code`).catch(() => {});
+  await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS email_verified`).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
