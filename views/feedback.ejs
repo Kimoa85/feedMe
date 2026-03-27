@@ -39,6 +39,18 @@
 
     <form action="/f/<%= token %>" method="POST" class="feedback-form">
 
+      <!-- Name -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">👤</span>
+          <div>
+            <h3>Your name <span class="optional-badge">optional</span></h3>
+            <p class="section-hint">You can stay anonymous if you prefer.</p>
+          </div>
+        </div>
+        <input type="text" name="submitter_name" placeholder="Your name, or leave blank to stay anonymous">
+      </div>
+
       <!-- 1 -->
       <div class="form-section card">
         <div class="form-section-head">
@@ -57,10 +69,10 @@
           <span class="section-icon">💪</span>
           <div>
             <h3>2. Strengths to lean into</h3>
-            <p class="section-hint">What should they continue doing or do more of?</p>
+            <p class="section-hint">What traits, skills, or qualities do they bring to the team or work environment? Think beyond tasks — what makes them distinctly valuable? Are there strengths they might not even recognise in themselves?</p>
           </div>
         </div>
-        <textarea name="strengths" rows="4" placeholder="What are they really good at?" required></textarea>
+        <textarea name="strengths" rows="4" placeholder="Think about who they are, not just what they do..." required></textarea>
       </div>
 
       <!-- 3 -->
@@ -69,7 +81,7 @@
           <span class="section-icon">🌱</span>
           <div>
             <h3>3. Growth opportunities</h3>
-            <p class="section-hint">What's one thing they could improve to be more effective? (Optional: what impact does this have today?)<br><em>Please keep this to 1–2 things.</em></p>
+            <p class="section-hint">Where do you notice gaps or areas that could be stronger? What skills or behaviours, if developed, would make them meaningfully more effective? Keep it to 1–2 things and be specific.</p>
           </div>
         </div>
         <textarea name="growth_opportunities" rows="4" placeholder="Be specific and kind..." required></textarea>
@@ -93,10 +105,10 @@
           <span class="section-icon">🤝</span>
           <div>
             <h3>5. Collaboration & team experience</h3>
-            <p class="section-hint">How does it feel to work with them? What helps your collaboration? What could make it even smoother?</p>
+            <p class="section-hint">Think about how they show up in the team dynamic. Are they the one who brings people together? Do they set the tone or the vibe? Are they a quiet anchor, a connector, or a visible leader? How do they shape the way the team feels and functions?</p>
           </div>
         </div>
-        <textarea name="collaboration" rows="4" placeholder="Describe the working experience..." required></textarea>
+        <textarea name="collaboration" rows="4" placeholder="Describe their role in the team dynamic..." required></textarea>
       </div>
 
       <!-- 6 -->
@@ -169,30 +181,6 @@
         <div id="otherInput" class="support-other-input hidden">
           <textarea name="support_other" rows="2" placeholder="Describe what you can offer..."></textarea>
         </div>
-      </div>
-
-      <!-- 9 — Name (optional) -->
-      <div class="form-section card">
-        <div class="form-section-head">
-          <span class="section-icon">👤</span>
-          <div>
-            <h3>9. Your name <span class="optional-badge">optional</span></h3>
-            <p class="section-hint">You can stay anonymous if you prefer.</p>
-          </div>
-        </div>
-        <input type="text" name="submitter_name" placeholder="Your name, or leave blank to stay anonymous">
-      </div>
-
-      <!-- Bonus (required) -->
-      <div class="form-section card bonus-section">
-        <div class="form-section-head">
-          <span class="section-icon">⭐</span>
-          <div>
-            <h3>Bonus <span class="optional-badge">optional</span></h3>
-            <p class="section-hint">"It would really help me if you…"</p>
-          </div>
-        </div>
-        <textarea name="it_would_help" rows="3" placeholder="Complete the sentence: It would really help me if you..."></textarea>
       </div>
 
       <!-- Submit -->
