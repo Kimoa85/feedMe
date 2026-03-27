@@ -77,14 +77,25 @@ app.post('/signup', async (req, res) => {
   if (password !== password_confirm)
     return res.render('login', { error: 'Passwords do not match.', success: null, tab: 'signup' });
 
-  if (await db.emailExists(email.trim().toLowerCase()))
+  const existingUser = await db.getUserByEmail(email.trim().toLowerCase());
+
+  if (existingUser && existingUser.password_hash)
     return res.render('login', { error: 'An account with that email already exists.', success: null, tab: 'signup' });
 
   try {
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await db.createUser(display_name.trim(), email.trim().toLowerCase(), passwordHash);
-    req.session.userId = user.id;
-    req.session.displayName = display_name.trim();
+
+    if (existingUser && !existingUser.password_hash) {
+      // Legacy account — upgrade it with a password
+      await db.updatePassword(existingUser.id, passwordHash);
+      req.session.userId = existingUser.id;
+      req.session.displayName = existingUser.display_name;
+    } else {
+      const user = await db.createUser(display_name.trim(), email.trim().toLowerCase(), passwordHash);
+      req.session.userId = user.id;
+      req.session.displayName = display_name.trim();
+    }
+
     res.redirect('/dashboard');
   } catch {
     res.render('login', { error: 'Something went wrong. Please try again.', success: null, tab: 'signup' });
