@@ -108,9 +108,15 @@ app.post('/login', loginLimiter, async (req, res) => {
   if (!match)
     return res.render('login', { error: 'Incorrect password. Please try again.', success: null, tab: 'login' });
 
-  req.session.userId = user.id;
-  req.session.displayName = user.display_name;
-  res.redirect('/dashboard');
+  req.session.regenerate((err) => {
+    if (err) return res.render('login', { error: 'Login failed. Please try again.', success: null, tab: 'login' });
+    req.session.userId = user.id;
+    req.session.displayName = user.display_name;
+    req.session.save((saveErr) => {
+      if (saveErr) return res.render('login', { error: 'Login failed. Please try again.', success: null, tab: 'login' });
+      res.redirect('/dashboard');
+    });
+  });
 });
 
 // POST /signup
