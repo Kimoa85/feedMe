@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>feedMe — My Dashboard 🍰</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="brand brand-sm">feedMe</span>
+    </div>
+    <div class="topbar-right">
+      <span class="welcome-text">Hi, <strong><%= user.display_name %></strong> ✨</span>
+      <a href="/logout" class="btn btn-ghost btn-sm">Logout</a>
+    </div>
+  </header>
+
+  <main class="dashboard-main">
+
+    <!-- How it works -->
+    <section class="card how-it-works">
+      <h2 class="section-title">🍰 How feedMe works</h2>
+      <ol class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <span>Click <strong>Generate Feedback Link</strong> below to create a unique, one-time link.</span>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <span>Copy the link and share it with someone you'd like feedback from.</span>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <span>They fill in the form and submit — it appears in your dashboard here.</span>
+        </li>
+        <li>
+          <span class="step-num">4</span>
+          <span>Each link works once. Need more? Just generate another! 🌸</span>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Generate link -->
+    <section class="card generate-section">
+      <h2 class="section-title">✨ Get feedback from someone new</h2>
+
+      <% if (newToken) { %>
+        <div class="new-link-box">
+          <p class="new-link-label">🎉 Your link is ready! Copy it and share:</p>
+          <div class="link-row">
+            <input type="text" id="generatedLink" value="<%= baseUrl %>/f/<%= newToken %>" readonly>
+            <button onclick="copyLink()" class="btn btn-copy" id="copyBtn">Copy 🌸</button>
+          </div>
+          <p class="link-hint">💡 This link can only be used once. Generate a new one for each person.</p>
+        </div>
+      <% } %>
+
+      <form action="/generate-link" method="POST">
+        <button type="submit" class="btn btn-primary">🌷 Generate Feedback Link</button>
+      </form>
+    </section>
+
+    <!-- Feedback received -->
+    <section class="feedback-inbox">
+      <h2 class="section-title">💌 Feedback I've received
+        <span class="count-badge"><%= submissions.length %></span>
+      </h2>
+
+      <% if (submissions.length === 0) { %>
+        <div class="card empty-state">
+          <div class="empty-icon">🌱</div>
+          <p>No feedback yet — share your link to get started!</p>
+        </div>
+      <% } else { %>
+        <div class="feedback-list">
+          <% submissions.forEach(sub => { %>
+            <div class="card feedback-card">
+
+              <div class="feedback-card-header">
+                <span class="feedback-from">
+                  <% if (sub.submitter_name) { %>
+                    From <strong><%= sub.submitter_name %></strong>
+                  <% } else { %>
+                    <em class="anon">Anonymous</em>
+                  <% } %>
+                </span>
+                <span class="feedback-date">
+                  <%= new Date(sub.submitted_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) %>
+                </span>
+              </div>
+
+              <div class="feedback-sections">
+                <div class="fb-item">
+                  <h4>✨ What's working well</h4>
+                  <p><%- sub.what_working_well.replace(/\n/g,'<br>') %></p>
+                </div>
+                <div class="fb-item">
+                  <h4>💪 Strengths to lean into</h4>
+                  <p><%- sub.strengths.replace(/\n/g,'<br>') %></p>
+                </div>
+                <div class="fb-item">
+                  <h4>🌱 Growth opportunities</h4>
+                  <p><%- sub.growth_opportunities.replace(/\n/g,'<br>') %></p>
+                </div>
+                <div class="fb-item">
+                  <h4>🔧 Actionable suggestions</h4>
+                  <p><%- sub.actionable_suggestions.replace(/\n/g,'<br>') %></p>
+                </div>
+                <div class="fb-item">
+                  <h4>🤝 Collaboration & team experience</h4>
+                  <p><%- sub.collaboration.replace(/\n/g,'<br>') %></p>
+                </div>
+                <div class="fb-item">
+                  <h4>🚀 Looking ahead</h4>
+                  <p><%- sub.looking_ahead.replace(/\n/g,'<br>') %></p>
+                </div>
+                <% if (sub.anything_else) { %>
+                  <div class="fb-item">
+                    <h4>💬 Anything else</h4>
+                    <p><%- sub.anything_else.replace(/\n/g,'<br>') %></p>
+                  </div>
+                <% } %>
+
+                <% if ((sub.support_offers && sub.support_offers.length > 0) || sub.support_other) { %>
+                  <div class="fb-item fb-support">
+                    <h4>🎁 Support they offered</h4>
+                    <% if (sub.support_offers && sub.support_offers.length > 0) { %>
+                      <ul class="support-tags">
+                        <% sub.support_offers.forEach(offer => { %>
+                          <li class="support-tag"><%= offer %></li>
+                        <% }) %>
+                      </ul>
+                    <% } %>
+                    <% if (sub.support_other) { %>
+                      <p class="support-other-text">💬 <%= sub.support_other %></p>
+                    <% } %>
+                  </div>
+                <% } %>
+
+                <div class="fb-item fb-highlight">
+                  <h4>⭐ It would really help me if you…</h4>
+                  <p><%- sub.it_would_help.replace(/\n/g,'<br>') %></p>
+                </div>
+              </div>
+
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+  </main>
+
+  <script>
+    function copyLink() {
+      const input = document.getElementById('generatedLink');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied! ✅';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy 🌸';
+          btn.classList.remove('copied');
+        }, 2500);
+      });
+    }
+  </script>
+</body>
+</html>

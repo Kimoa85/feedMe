@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>feedMe 🍰</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="page-wrapper center-page">
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        <h1 class="brand">feedMe</h1>
+        <p class="tagline">peer feedback, served fresh ✨</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn <%= tab === 'login' ? 'active' : '' %>" onclick="switchTab('login', this)">Login</button>
+        <button class="tab-btn <%= tab === 'signup' ? 'active' : '' %>" onclick="switchTab('signup', this)">Sign Up</button>
+      </div>
+
+      <% if (error) { %>
+        <div class="alert alert-error">⚠️ <%= error %></div>
+      <% } %>
+      <% if (success) { %>
+        <div class="alert alert-success">✅ <%= success %></div>
+      <% } %>
+
+      <!-- Login -->
+      <div id="tab-login" class="tab-content <%= tab === 'login' ? '' : 'hidden' %>">
+        <form action="/login" method="POST">
+          <div class="form-group">
+            <label for="code">Your Code</label>
+            <input type="password" id="code" name="code" placeholder="Enter your secret code..." required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Let me in 🍰</button>
+        </form>
+        <p class="auth-link"><a href="/forgot">Forgot your code?</a></p>
+      </div>
+
+      <!-- Signup -->
+      <div id="tab-signup" class="tab-content <%= tab === 'signup' ? '' : 'hidden' %>">
+        <form action="/signup" method="POST">
+          <div class="form-group">
+            <label for="display_name">Your Name</label>
+            <input type="text" id="display_name" name="display_name" placeholder="What should we call you?" required>
+          </div>
+          <div class="form-group">
+            <label for="signup_code">Choose Your Code</label>
+            <input type="password" id="signup_code" name="code" placeholder="Pick something you'll remember" required minlength="4" autocomplete="new-password">
+            <span class="hint">At least 4 characters — this is your password.</span>
+          </div>
+          <div class="form-group">
+            <label for="email">Email <span class="optional">(optional)</span></label>
+            <input type="email" id="email" name="email" placeholder="your@email.com" autocomplete="email">
+          </div>
+
+          <div class="disclaimer">
+            <span>💡</span>
+            <div>
+              <strong>Heads up!</strong> Adding an email is optional, but we recommend it.
+              Without it, there is no way to recover your code if you forget it.
+              Your email is only ever used for code recovery — nothing else.
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full">Create my account 🌸</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab, el) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.remove('hidden');
+      el.classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>feedMe 🌸</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="page-wrapper center-page">
+    <div class="card thankyou-card">
+
+      <% if (state === 'success') { %>
+        <div class="ty-icon float-anim">🌸</div>
+        <h1>Thank you for submitting your feedback!</h1>
+        <p>Your kind words and honest thoughts make a real difference. 💛</p>
+        <p class="ty-sub">You can close this page now.</p>
+
+      <% } else if (state === 'used') { %>
+        <div class="ty-icon">🍰</div>
+        <h1>Already submitted</h1>
+        <p>This feedback link has already been used. Each link can only be submitted once.</p>
+
+      <% } else { %>
+        <div class="ty-icon">🌸</div>
+        <h1>Link not found</h1>
+        <p>This feedback link doesn't exist. Please double-check the URL you received.</p>
+
+      <% } %>
+
+    </div>
+  </div>
+</body>
+</html>

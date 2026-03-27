@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>feedMe — Share Feedback 🌿</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="feedback-bg">
+  <div class="feedback-wrapper">
+
+    <header class="feedback-header">
+      <span class="brand brand-sm">feedMe</span>
+    </header>
+
+    <div class="feedback-intro-card card">
+      <div class="feedback-intro-icon">🌿</div>
+      <h1>Peer Feedback Form</h1>
+      <% if (recipient) { %>
+        <p class="feedback-for">for <strong><%= recipient.display_name %></strong></p>
+      <% } %>
+      <p class="intro-text">
+        Thanks for taking the time to share feedback 💛<br>
+        This is meant to help <strong><%= recipient ? recipient.display_name : 'your teammate' %></strong>
+        grow and understand how they can be a better teammate.
+      </p>
+      <div class="guidelines">
+        <span>Please be <strong>honest, kind, and specific.</strong></span>
+        <span>Focus on behaviors and examples.</span>
+        <span>Write things you'd feel comfortable saying directly.</span>
+      </div>
+    </div>
+
+    <% if (error) { %>
+      <div class="alert alert-error">⚠️ <%= error %></div>
+    <% } %>
+
+    <form action="/f/<%= token %>" method="POST" class="feedback-form">
+
+      <!-- 1 -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">✨</span>
+          <div>
+            <h3>1. What's working well</h3>
+            <p class="section-hint">What do you appreciate about working with them? When have you seen them at their best?</p>
+          </div>
+        </div>
+        <textarea name="what_working_well" rows="4" placeholder="Share what you genuinely appreciate..." required></textarea>
+      </div>
+
+      <!-- 2 -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">💪</span>
+          <div>
+            <h3>2. Strengths to lean into</h3>
+            <p class="section-hint">What should they continue doing or do more of?</p>
+          </div>
+        </div>
+        <textarea name="strengths" rows="4" placeholder="What are they really good at?" required></textarea>
+      </div>
+
+      <!-- 3 -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">🌱</span>
+          <div>
+            <h3>3. Growth opportunities</h3>
+            <p class="section-hint">What's one thing they could improve to be more effective? (Optional: what impact does this have today?)<br><em>Please keep this to 1–2 things.</em></p>
+          </div>
+        </div>
+        <textarea name="growth_opportunities" rows="4" placeholder="Be specific and kind..." required></textarea>
+      </div>
+
+      <!-- 4 -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">🔧</span>
+          <div>
+            <h3>4. Actionable suggestions</h3>
+            <p class="section-hint">What's one practical change or habit that would help them improve?</p>
+          </div>
+        </div>
+        <textarea name="actionable_suggestions" rows="4" placeholder="Think practically..." required></textarea>
+      </div>
+
+      <!-- 5 -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">🤝</span>
+          <div>
+            <h3>5. Collaboration & team experience</h3>
+            <p class="section-hint">How does it feel to work with them? What helps your collaboration? What could make it even smoother?</p>
+          </div>
+        </div>
+        <textarea name="collaboration" rows="4" placeholder="Describe the working experience..." required></textarea>
+      </div>
+
+      <!-- 6 -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">🚀</span>
+          <div>
+            <h3>6. Looking ahead</h3>
+            <p class="section-hint">What would make them even more effective in this team?</p>
+          </div>
+        </div>
+        <textarea name="looking_ahead" rows="4" placeholder="Share your vision for their growth..." required></textarea>
+      </div>
+
+      <!-- 7 (optional) -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">💬</span>
+          <div>
+            <h3>7. Anything else <span class="optional-badge">optional</span></h3>
+            <p class="section-hint">Any additional thoughts or feedback?</p>
+          </div>
+        </div>
+        <textarea name="anything_else" rows="3" placeholder="Anything else on your mind..."></textarea>
+      </div>
+
+      <!-- 8 — Support I can offer -->
+      <div class="form-section card support-section">
+        <div class="form-section-head">
+          <span class="section-icon">🎁</span>
+          <div>
+            <h3>8. Support I can offer <span class="optional-badge">optional</span></h3>
+            <p class="section-hint">Is there anything you'd be willing to offer to support their growth? Pick what applies, or add your own.</p>
+          </div>
+        </div>
+        <div class="support-options">
+          <label class="support-checkbox">
+            <input type="checkbox" name="support_offers" value="I can mentor you">
+            <span class="checkbox-label">🌟 I can mentor you</span>
+          </label>
+          <label class="support-checkbox">
+            <input type="checkbox" name="support_offers" value="I can teach you a skill">
+            <span class="checkbox-label">📚 I can teach you a skill</span>
+          </label>
+          <label class="support-checkbox">
+            <input type="checkbox" name="support_offers" value="I can take things off your plate">
+            <span class="checkbox-label">🙌 I can take things off your plate</span>
+          </label>
+          <label class="support-checkbox">
+            <input type="checkbox" name="support_offers" value="We can align weekly">
+            <span class="checkbox-label">📅 We can align weekly</span>
+          </label>
+          <label class="support-checkbox">
+            <input type="checkbox" name="support_offers" value="I can give you more feedback along the way">
+            <span class="checkbox-label">💬 I can give you more feedback along the way</span>
+          </label>
+          <label class="support-checkbox">
+            <input type="checkbox" name="support_offers" value="I can back you up in meetings">
+            <span class="checkbox-label">🤝 I can back you up in meetings</span>
+          </label>
+          <label class="support-checkbox">
+            <input type="checkbox" name="support_offers" value="I can connect you with someone useful">
+            <span class="checkbox-label">🔗 I can connect you with someone useful</span>
+          </label>
+          <label class="support-checkbox support-other-toggle">
+            <input type="checkbox" id="otherCheck" onchange="toggleOther(this)">
+            <span class="checkbox-label">✏️ Something else…</span>
+          </label>
+        </div>
+        <div id="otherInput" class="support-other-input hidden">
+          <textarea name="support_other" rows="2" placeholder="Describe what you can offer..."></textarea>
+        </div>
+      </div>
+
+      <!-- 9 — Name (optional) -->
+      <div class="form-section card">
+        <div class="form-section-head">
+          <span class="section-icon">👤</span>
+          <div>
+            <h3>9. Your name <span class="optional-badge">optional</span></h3>
+            <p class="section-hint">You can stay anonymous if you prefer.</p>
+          </div>
+        </div>
+        <input type="text" name="submitter_name" placeholder="Your name, or leave blank to stay anonymous">
+      </div>
+
+      <!-- Bonus (required) -->
+      <div class="form-section card bonus-section">
+        <div class="form-section-head">
+          <span class="section-icon">⭐</span>
+          <div>
+            <h3>Bonus <span class="required-badge">required</span></h3>
+            <p class="section-hint">"It would really help me if you…"</p>
+          </div>
+        </div>
+        <textarea name="it_would_help" rows="3" placeholder="Complete the sentence: It would really help me if you..." required></textarea>
+      </div>
+
+      <!-- Submit -->
+      <div class="form-submit-area">
+        <button type="submit" class="btn btn-primary btn-large btn-full">Submit Feedback 🌸</button>
+        <p class="submit-note">Once submitted, this form cannot be edited. Thank you for your time! 💛</p>
+      </div>
+
+    </form>
+  </div>
+
+  <script>
+    function toggleOther(checkbox) {
+      const div = document.getElementById('otherInput');
+      div.classList.toggle('hidden', !checkbox.checked);
+    }
+  </script>
+</body>
+</html>
