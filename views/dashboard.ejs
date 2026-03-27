@@ -159,34 +159,27 @@
   </main>
 
   <script>
-    function copyLink() {
+    async function copyLink() {
       const input = document.getElementById('generatedLink');
       const btn = document.getElementById('copyBtn');
+      const text = input.value;
 
-      function markCopied() {
-        btn.textContent = 'Copied! ✅';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = 'Copy 🌸';
-          btn.classList.remove('copied');
-        }, 2500);
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (e) {
+        // fallback for older browsers
+        input.focus();
+        input.select();
+        input.setSelectionRange(0, 99999);
+        document.execCommand('copy');
       }
 
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(input.value).then(markCopied).catch(() => {
-          fallbackCopy(input);
-          markCopied();
-        });
-      } else {
-        fallbackCopy(input);
-        markCopied();
-      }
-    }
-
-    function fallbackCopy(input) {
-      input.focus();
-      input.select();
-      document.execCommand('copy');
+      btn.textContent = 'Copied! ✅';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy 🌸';
+        btn.classList.remove('copied');
+      }, 2500);
     }
   </script>
 </body>
