@@ -42,7 +42,8 @@ app.use(session({
   cookie: {
     maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
+    httpOnly: true,
+    secure: 'auto'
   }
 }));
 
@@ -109,14 +110,11 @@ app.post('/login', loginLimiter, async (req, res) => {
   if (!match)
     return res.render('login', { error: 'Incorrect password. Please try again.', success: null, tab: 'login' });
 
-  req.session.regenerate((err) => {
+  req.session.userId = user.id;
+  req.session.displayName = user.display_name;
+  req.session.save((err) => {
     if (err) return res.render('login', { error: 'Login failed. Please try again.', success: null, tab: 'login' });
-    req.session.userId = user.id;
-    req.session.displayName = user.display_name;
-    req.session.save((saveErr) => {
-      if (saveErr) return res.render('login', { error: 'Login failed. Please try again.', success: null, tab: 'login' });
-      res.redirect('/dashboard');
-    });
+    res.redirect('/dashboard');
   });
 });
 
