@@ -15,6 +15,7 @@ const PgSession = connectPg(session);
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.set('trust proxy', 1); // Required for secure cookies behind Railway's proxy
 
 // Security headers
 app.use(helmet({
