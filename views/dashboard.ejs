@@ -97,32 +97,32 @@
               <div class="feedback-sections">
                 <div class="fb-item">
                   <h4>✨ What's working well</h4>
-                  <p><%- sub.what_working_well.replace(/\n/g,'<br>') %></p>
+                  <p><%= sub.what_working_well %></p>
                 </div>
                 <div class="fb-item">
                   <h4>💪 Strengths to lean into</h4>
-                  <p><%- sub.strengths.replace(/\n/g,'<br>') %></p>
+                  <p><%= sub.strengths %></p>
                 </div>
                 <div class="fb-item">
                   <h4>🌱 Growth opportunities</h4>
-                  <p><%- sub.growth_opportunities.replace(/\n/g,'<br>') %></p>
+                  <p><%= sub.growth_opportunities %></p>
                 </div>
                 <div class="fb-item">
                   <h4>🔧 Actionable suggestions</h4>
-                  <p><%- sub.actionable_suggestions.replace(/\n/g,'<br>') %></p>
+                  <p><%= sub.actionable_suggestions %></p>
                 </div>
                 <div class="fb-item">
                   <h4>🤝 Collaboration & team experience</h4>
-                  <p><%- sub.collaboration.replace(/\n/g,'<br>') %></p>
+                  <p><%= sub.collaboration %></p>
                 </div>
                 <div class="fb-item">
                   <h4>🚀 Looking ahead</h4>
-                  <p><%- sub.looking_ahead.replace(/\n/g,'<br>') %></p>
+                  <p><%= sub.looking_ahead %></p>
                 </div>
                 <% if (sub.anything_else) { %>
                   <div class="fb-item">
                     <h4>💬 Anything else</h4>
-                    <p><%- sub.anything_else.replace(/\n/g,'<br>') %></p>
+                    <p><%= sub.anything_else %></p>
                   </div>
                 <% } %>
 
@@ -145,7 +145,7 @@
                 <% if (sub.it_would_help) { %>
                 <div class="fb-item fb-highlight">
                   <h4>⭐ It would really help me if you…</h4>
-                  <p><%- sub.it_would_help.replace(/\n/g,'<br>') %></p>
+                  <p><%= sub.it_would_help %></p>
                 </div>
                 <% } %>
               </div>

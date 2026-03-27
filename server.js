@@ -5,6 +5,8 @@ const connectPg = require('connect-pg-simple');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 const path = require('path');
 const db = require('./db');
 
@@ -13,6 +15,20 @@ const PgSession = connectPg(session);
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+    }
+  }
+}));
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -22,13 +38,29 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'kawaii-feedback-change-in-prod',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
+  cookie: {
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  }
 }));
 
 function requireAuth(req, res, next) {
   if (req.session.userId) return next();
   res.redirect('/');
 }
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  handler: (req, res) => {
+    res.render('login', {
+      error: 'Too many login attempts. Please wait 15 minutes and try again.',
+      success: null,
+      tab: 'login'
+    });
+  }
+});
 
 let transporter = null;
 if (process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -46,7 +78,7 @@ app.get('/', (req, res) => {
 });
 
 // POST /login
-app.post('/login', async (req, res) => {
+app.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
     return res.render('login', { error: 'Please enter your email and password.', success: null, tab: 'login' });
