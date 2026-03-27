@@ -53,14 +53,31 @@ function requireAuth(req, res, next) {
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
-  handler: (req, res) => {
-    res.render('login', {
-      error: 'Too many login attempts. Please wait 15 minutes and try again.',
-      success: null,
-      tab: 'login'
-    });
-  }
+  handler: (req, res) => res.render('login', {
+    error: 'Too many login attempts. Please wait 15 minutes and try again.',
+    success: null, tab: 'login'
+  })
 });
+
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  handler: (req, res) => res.render('login', {
+    error: 'Too many sign up attempts. Please try again later.',
+    success: null, tab: 'signup'
+  })
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  handler: (req, res) => res.render('forgot', {
+    error: 'Too many requests. Please wait an hour and try again.',
+    success: null
+  })
+});
+
+const MAX_INPUT_LENGTH = 5000;
 
 let transporter = null;
 if (process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -91,13 +108,16 @@ app.post('/login', loginLimiter, async (req, res) => {
   if (!match)
     return res.render('login', { error: 'Incorrect password. Please try again.', success: null, tab: 'login' });
 
-  req.session.userId = user.id;
-  req.session.displayName = user.display_name;
-  res.redirect('/dashboard');
+  req.session.regenerate((err) => {
+    if (err) return res.render('login', { error: 'Login failed. Please try again.', success: null, tab: 'login' });
+    req.session.userId = user.id;
+    req.session.displayName = user.display_name;
+    res.redirect('/dashboard');
+  });
 });
 
 // POST /signup
-app.post('/signup', async (req, res) => {
+app.post('/signup', signupLimiter, async (req, res) => {
   const { display_name, email, password, password_confirm } = req.body;
 
   if (!display_name || !email || !password)
@@ -112,7 +132,7 @@ app.post('/signup', async (req, res) => {
   const existingUser = await db.getUserByEmail(email.trim().toLowerCase());
 
   if (existingUser && existingUser.password_hash)
-    return res.render('login', { error: 'An account with that email already exists.', success: null, tab: 'signup' });
+    return res.render('login', { error: 'Something went wrong. Please try again or log in.', success: null, tab: 'signup' });
 
   try {
     const passwordHash = await bcrypt.hash(password, 12);
@@ -166,7 +186,7 @@ app.get('/forgot', (req, res) => {
 });
 
 // POST /forgot
-app.post('/forgot', async (req, res) => {
+app.post('/forgot', forgotLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.render('forgot', { error: 'Please enter your email.', success: null });
 
@@ -257,6 +277,13 @@ app.post('/f/:token', async (req, res) => {
       !actionable_suggestions || !collaboration || !looking_ahead) {
     const recipient = await db.getUserById(link.user_id);
     return res.render('feedback', { token: req.params.token, recipient, error: 'Please fill in all required fields.' });
+  }
+
+  const fields = [what_working_well, strengths, growth_opportunities, actionable_suggestions,
+    collaboration, looking_ahead, anything_else, it_would_help, support_other];
+  if (fields.some(f => f && f.length > MAX_INPUT_LENGTH)) {
+    const recipient = await db.getUserById(link.user_id);
+    return res.render('feedback', { token: req.params.token, recipient, error: `Please keep each answer under ${MAX_INPUT_LENGTH} characters.` });
   }
 
   const offersArray = !support_offers ? [] :
