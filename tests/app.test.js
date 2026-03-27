@@ -85,7 +85,7 @@ describe('Signup', () => {
     const res = await request(app).post('/signup').send({
       display_name: 'Kim2', email: 'kim@test.com', password: 'abc123', password_confirm: 'abc123'
     });
-    expect(res.text).toContain('Something went wrong');
+    expect(res.text).toContain('already exists');
   });
 });
 

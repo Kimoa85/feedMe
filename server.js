@@ -132,7 +132,7 @@ app.post('/signup', signupLimiter, async (req, res) => {
   const existingUser = await db.getUserByEmail(email.trim().toLowerCase());
 
   if (existingUser && existingUser.password_hash)
-    return res.render('login', { error: 'Something went wrong. Please try again or log in.', success: null, tab: 'signup' });
+    return res.render('login', { error: 'An account with that email already exists. Try logging in instead.', success: null, tab: 'signup' });
 
   try {
     const passwordHash = await bcrypt.hash(password, 12);
