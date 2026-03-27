@@ -6,17 +6,26 @@ const pool = new Pool({
 });
 
 async function init() {
-  // Make it_would_help nullable if it was created as NOT NULL
-  await pool.query(`
-    ALTER TABLE feedback_submissions ALTER COLUMN it_would_help DROP NOT NULL
-  `).catch(() => {}); // silently ignore if table doesn't exist yet or already nullable
+  // Migrations for existing tables
+  await pool.query(`ALTER TABLE feedback_submissions ALTER COLUMN it_would_help DROP NOT NULL`).catch(() => {});
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE`).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       display_name TEXT NOT NULL,
-      code TEXT UNIQUE NOT NULL,
-      email TEXT,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      token TEXT UNIQUE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -51,16 +60,16 @@ module.exports = {
   init,
   pool,
 
-  async createUser(displayName, code, email) {
+  async createUser(displayName, email, passwordHash) {
     const result = await pool.query(
-      'INSERT INTO users (display_name, code, email) VALUES ($1, $2, $3) RETURNING id',
-      [displayName, code, email || null]
+      'INSERT INTO users (display_name, email, password_hash) VALUES ($1, $2, $3) RETURNING id',
+      [displayName, email, passwordHash]
     );
     return result.rows[0];
   },
 
-  async getUserByCode(code) {
-    const result = await pool.query('SELECT * FROM users WHERE code = $1', [code]);
+  async getUserByEmail(email) {
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     return result.rows[0] || null;
   },
 
@@ -69,14 +78,32 @@ module.exports = {
     return result.rows[0] || null;
   },
 
-  async getUserByEmail(email) {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  async emailExists(email) {
+    const result = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    return result.rows.length > 0;
+  },
+
+  async createResetToken(userId, token, expiresAt) {
+    await pool.query(
+      'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+      [userId, token, expiresAt]
+    );
+  },
+
+  async getResetToken(token) {
+    const result = await pool.query(
+      'SELECT * FROM password_reset_tokens WHERE token = $1 AND used = FALSE AND expires_at > NOW()',
+      [token]
+    );
     return result.rows[0] || null;
   },
 
-  async codeExists(code) {
-    const result = await pool.query('SELECT id FROM users WHERE code = $1', [code]);
-    return result.rows.length > 0;
+  async markResetTokenUsed(token) {
+    await pool.query('UPDATE password_reset_tokens SET used = TRUE WHERE token = $1', [token]);
+  },
+
+  async updatePassword(userId, passwordHash) {
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, userId]);
   },
 
   async createFeedbackLink(userId, token) {
@@ -114,7 +141,7 @@ module.exports = {
         data.looking_ahead,
         data.anything_else || null,
         data.submitter_name || null,
-        data.it_would_help,
+        data.it_would_help || null,
         data.support_offers || [],
         data.support_other || null
       ]

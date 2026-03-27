@@ -33,12 +33,16 @@
       <div id="tab-login" class="tab-content <%= tab === 'login' ? '' : 'hidden' %>">
         <form action="/login" method="POST">
           <div class="form-group">
-            <label for="code">Your Code</label>
-            <input type="password" id="code" name="code" placeholder="Enter your secret code..." required autocomplete="current-password">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Your password" required autocomplete="current-password">
           </div>
           <button type="submit" class="btn btn-primary btn-full">Let me in 🍰</button>
         </form>
-        <p class="auth-link"><a href="/forgot">Forgot your code?</a></p>
+        <p class="auth-link"><a href="/forgot">Forgot your password?</a></p>
       </div>
 
       <!-- Signup -->
@@ -49,24 +53,17 @@
             <input type="text" id="display_name" name="display_name" placeholder="What should we call you?" required>
           </div>
           <div class="form-group">
-            <label for="signup_code">Choose Your Code</label>
-            <input type="password" id="signup_code" name="code" placeholder="Pick something you'll remember" required minlength="4" autocomplete="new-password">
-            <span class="hint">At least 4 characters — this is your password.</span>
+            <label for="signup_email">Email</label>
+            <input type="email" id="signup_email" name="email" placeholder="your@email.com" required autocomplete="email">
           </div>
           <div class="form-group">
-            <label for="email">Email <span class="optional">(optional)</span></label>
-            <input type="email" id="email" name="email" placeholder="your@email.com" autocomplete="email">
+            <label for="signup_password">Password</label>
+            <input type="password" id="signup_password" name="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
           </div>
-
-          <div class="disclaimer">
-            <span>💡</span>
-            <div>
-              <strong>Heads up!</strong> Adding an email is optional, but we recommend it.
-              Without it, there is no way to recover your code if you forget it.
-              Your email is only ever used for code recovery — nothing else.
-            </div>
+          <div class="form-group">
+            <label for="password_confirm">Confirm Password</label>
+            <input type="password" id="password_confirm" name="password_confirm" placeholder="Repeat your password" required autocomplete="new-password">
           </div>
-
           <button type="submit" class="btn btn-primary btn-full">Create my account 🌸</button>
         </form>
       </div>

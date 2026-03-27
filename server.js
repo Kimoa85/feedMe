@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const connectPg = require('connect-pg-simple');
+const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
 const path = require('path');
@@ -24,13 +25,11 @@ app.use(session({
   cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
 }));
 
-// Auth middleware
 function requireAuth(req, res, next) {
   if (req.session.userId) return next();
   res.redirect('/');
 }
 
-// Email transporter (optional)
 let transporter = null;
 if (process.env.SMTP_USER && process.env.SMTP_PASS) {
   transporter = nodemailer.createTransport({
@@ -41,7 +40,6 @@ if (process.env.SMTP_USER && process.env.SMTP_PASS) {
 
 // ─── ROUTES ────────────────────────────────────────────────────────
 
-// GET / — Login/Signup
 app.get('/', (req, res) => {
   if (req.session.userId) return res.redirect('/dashboard');
   res.render('login', { error: null, success: null, tab: 'login' });
@@ -49,11 +47,17 @@ app.get('/', (req, res) => {
 
 // POST /login
 app.post('/login', async (req, res) => {
-  const { code } = req.body;
-  if (!code) return res.render('login', { error: 'Please enter your code.', success: null, tab: 'login' });
+  const { email, password } = req.body;
+  if (!email || !password)
+    return res.render('login', { error: 'Please enter your email and password.', success: null, tab: 'login' });
 
-  const user = await db.getUserByCode(code.trim());
-  if (!user) return res.render('login', { error: 'Invalid code. Please try again.', success: null, tab: 'login' });
+  const user = await db.getUserByEmail(email.trim().toLowerCase());
+  if (!user)
+    return res.render('login', { error: 'No account found with that email.', success: null, tab: 'login' });
+
+  const match = await bcrypt.compare(password, user.password_hash);
+  if (!match)
+    return res.render('login', { error: 'Incorrect password. Please try again.', success: null, tab: 'login' });
 
   req.session.userId = user.id;
   req.session.displayName = user.display_name;
@@ -62,20 +66,23 @@ app.post('/login', async (req, res) => {
 
 // POST /signup
 app.post('/signup', async (req, res) => {
-  const { display_name, code, email } = req.body;
+  const { display_name, email, password, password_confirm } = req.body;
 
-  if (!display_name || !code) {
-    return res.render('login', { error: 'Name and code are required.', success: null, tab: 'signup' });
-  }
-  if (code.trim().length < 4) {
-    return res.render('login', { error: 'Code must be at least 4 characters.', success: null, tab: 'signup' });
-  }
-  if (await db.codeExists(code.trim())) {
-    return res.render('login', { error: 'That code is already taken. Please choose another.', success: null, tab: 'signup' });
-  }
+  if (!display_name || !email || !password)
+    return res.render('login', { error: 'All fields are required.', success: null, tab: 'signup' });
+
+  if (password.length < 6)
+    return res.render('login', { error: 'Password must be at least 6 characters.', success: null, tab: 'signup' });
+
+  if (password !== password_confirm)
+    return res.render('login', { error: 'Passwords do not match.', success: null, tab: 'signup' });
+
+  if (await db.emailExists(email.trim().toLowerCase()))
+    return res.render('login', { error: 'An account with that email already exists.', success: null, tab: 'signup' });
 
   try {
-    const user = await db.createUser(display_name.trim(), code.trim(), email?.trim() || null);
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await db.createUser(display_name.trim(), email.trim().toLowerCase(), passwordHash);
     req.session.userId = user.id;
     req.session.displayName = display_name.trim();
     res.redirect('/dashboard');
@@ -96,11 +103,9 @@ app.get('/dashboard', requireAuth, async (req, res) => {
     db.getUserById(req.session.userId),
     db.getSubmissionsByUserId(req.session.userId)
   ]);
-
   const newToken = req.session.newToken || null;
   delete req.session.newToken;
   const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-
   res.render('dashboard', { user, submissions, newToken, baseUrl });
 });
 
@@ -122,54 +127,79 @@ app.post('/forgot', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.render('forgot', { error: 'Please enter your email.', success: null });
 
-  const user = await db.getUserByEmail(email.trim());
+  const user = await db.getUserByEmail(email.trim().toLowerCase());
+  const successMsg = 'If that email is registered, a reset link has been sent.';
 
-  // Always show same message to avoid email enumeration
-  if (!user) {
-    return res.render('forgot', { error: null, success: 'If that email is registered, your code has been sent.' });
-  }
+  if (!user) return res.render('forgot', { error: null, success: successMsg });
 
-  if (!transporter) {
+  if (!transporter)
     return res.render('forgot', { error: 'Email is not configured on this server. Please contact the admin.', success: null });
-  }
+
+  const token = uuidv4();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  await db.createResetToken(user.id, token, expiresAt);
+
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const resetUrl = `${baseUrl}/reset/${token}`;
 
   try {
     await transporter.sendMail({
       from: process.env.SMTP_USER,
       to: user.email,
-      subject: '🌸 Your Feedback App Login Code',
+      subject: '🌸 Reset your feedMe password',
       html: `
         <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#FFF0F5;border-radius:16px;">
-          <h2 style="color:#FF69B4;margin-bottom:8px;">🌸 Your Login Code</h2>
-          <p>Hi <strong>${user.display_name}</strong>! Here is your login code:</p>
-          <div style="background:#fff;padding:20px;border-radius:12px;font-size:28px;text-align:center;letter-spacing:4px;font-weight:bold;color:#FF69B4;margin:20px 0;border:2px solid #FFB7C5;">
-            ${user.code}
-          </div>
+          <h2 style="color:#FF69B4;">🌸 Reset your password</h2>
+          <p>Hi <strong>${user.display_name}</strong>!</p>
+          <p>Click the button below to reset your password. This link expires in 1 hour.</p>
+          <a href="${resetUrl}" style="display:inline-block;margin:20px 0;padding:14px 28px;background:#FF69B4;color:#fff;border-radius:50px;text-decoration:none;font-weight:bold;">Reset my password</a>
           <p style="color:#aaa;font-size:12px;">If you didn't request this, you can ignore this email.</p>
         </div>
       `
     });
-    res.render('forgot', { error: null, success: 'Your code has been sent to your email!' });
+    res.render('forgot', { error: null, success: successMsg });
   } catch {
     res.render('forgot', { error: 'Failed to send email. Please try again.', success: null });
   }
 });
 
-// GET /f/:token — Feedback form
+// GET /reset/:token
+app.get('/reset/:token', async (req, res) => {
+  const record = await db.getResetToken(req.params.token);
+  if (!record) return res.render('reset', { token: null, error: 'This reset link is invalid or has expired.' });
+  res.render('reset', { token: req.params.token, error: null });
+});
+
+// POST /reset/:token
+app.post('/reset/:token', async (req, res) => {
+  const record = await db.getResetToken(req.params.token);
+  if (!record) return res.render('reset', { token: null, error: 'This reset link is invalid or has expired.' });
+
+  const { password, password_confirm } = req.body;
+  if (!password || password.length < 6)
+    return res.render('reset', { token: req.params.token, error: 'Password must be at least 6 characters.' });
+  if (password !== password_confirm)
+    return res.render('reset', { token: req.params.token, error: 'Passwords do not match.' });
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await db.updatePassword(record.user_id, passwordHash);
+  await db.markResetTokenUsed(req.params.token);
+
+  res.render('login', { error: null, success: 'Password updated! You can now log in.', tab: 'login' });
+});
+
+// GET /f/:token
 app.get('/f/:token', async (req, res) => {
   const link = await db.getLinkByToken(req.params.token);
-
   if (!link) return res.render('thankyou', { state: 'notfound' });
   if (link.used) return res.render('thankyou', { state: 'used' });
-
   const recipient = await db.getUserById(link.user_id);
   res.render('feedback', { token: req.params.token, recipient, error: null });
 });
 
-// POST /f/:token — Submit feedback
+// POST /f/:token
 app.post('/f/:token', async (req, res) => {
   const link = await db.getLinkByToken(req.params.token);
-
   if (!link) return res.render('thankyou', { state: 'notfound' });
   if (link.used) return res.render('thankyou', { state: 'used' });
 
@@ -183,13 +213,9 @@ app.post('/f/:token', async (req, res) => {
   if (!what_working_well || !strengths || !growth_opportunities ||
       !actionable_suggestions || !collaboration || !looking_ahead) {
     const recipient = await db.getUserById(link.user_id);
-    return res.render('feedback', {
-      token: req.params.token, recipient,
-      error: 'Please fill in all required fields.'
-    });
+    return res.render('feedback', { token: req.params.token, recipient, error: 'Please fill in all required fields.' });
   }
 
-  // support_offers comes as string or array from checkboxes
   const offersArray = !support_offers ? [] :
     Array.isArray(support_offers) ? support_offers : [support_offers];
 
@@ -208,9 +234,7 @@ app.post('/f/:token', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 db.init().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🌸 Feedback app running on port ${PORT}`);
-  });
+  app.listen(PORT, () => console.log(`🌸 feedMe running on port ${PORT}`));
 }).catch(err => {
   console.error('Failed to initialize database:', err);
   process.exit(1);

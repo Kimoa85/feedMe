@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>feedMe — Forgot Code 🌸</title>
+  <title>feedMe — Forgot Password 🌸</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
@@ -14,7 +14,7 @@
 
       <div class="auth-logo">
         <h1 class="brand">feedMe</h1>
-        <p class="tagline">we'll send your code 💌</p>
+        <p class="tagline">we'll send you a reset link 💌</p>
       </div>
 
       <% if (error) { %>
@@ -29,16 +29,10 @@
           <label for="email">Your Email</label>
           <input type="email" id="email" name="email" placeholder="your@email.com" required>
         </div>
-        <button type="submit" class="btn btn-primary btn-full">Send my code 🌸</button>
+        <button type="submit" class="btn btn-primary btn-full">Send reset link 🌸</button>
       </form>
 
       <p class="auth-link"><a href="/">← Back to login</a></p>
-
-      <div class="disclaimer">
-        <span>💡</span>
-        <div>If you didn't add an email when signing up, unfortunately we can't recover your code.
-        You'd need to create a new account.</div>
-      </div>
 
     </div>
   </div>
