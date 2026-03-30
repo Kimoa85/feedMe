@@ -77,77 +77,128 @@
           <div class="empty-icon">🌱</div>
           <p>No feedback yet — share your link to get started!</p>
         </div>
+
       <% } else { %>
-        <div class="feedback-list">
-          <% submissions.forEach(sub => { %>
-            <div class="card feedback-card">
 
-              <div class="feedback-card-header">
-                <span class="feedback-from">
-                  <% if (sub.submitter_name) { %>
-                    From <strong><%= sub.submitter_name %></strong>
-                  <% } else { %>
-                    <em class="anon">Anonymous</em>
+        <%
+          const lastDate = submissions.reduce((latest, s) => {
+            const d = new Date(s.submitted_at);
+            return d > latest ? d : latest;
+          }, new Date(0));
+        %>
+        <div class="feedback-summary-bar">
+          <strong><%= submissions.length %></strong>&nbsp;<%= submissions.length === 1 ? 'response' : 'responses' %>
+          <span class="summary-divider">·</span>
+          Last received <strong><%= lastDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %></strong>
+        </div>
+
+        <%
+          const questions = [
+            { key: 'what_working_well',     icon: '✨', label: "What's working well" },
+            { key: 'strengths',             icon: '💪', label: 'Strengths to lean into' },
+            { key: 'growth_opportunities',  icon: '🌱', label: 'Growth opportunities' },
+            { key: 'actionable_suggestions',icon: '🔧', label: 'Actionable suggestions' },
+            { key: 'collaboration',         icon: '🤝', label: 'Collaboration & team experience' },
+            { key: 'looking_ahead',         icon: '🚀', label: 'Looking ahead' },
+          ];
+        %>
+
+        <div class="feedback-report">
+          <% questions.forEach(q => { %>
+            <div class="report-section card">
+              <h3 class="report-section-title">
+                <span class="report-icon"><%= q.icon %></span><%= q.label %>
+              </h3>
+              <div class="responses-list">
+                <% submissions.forEach(sub => { %>
+                  <% if (sub[q.key]) { %>
+                    <div class="response-item">
+                      <p class="response-text"><%= sub[q.key] %></p>
+                      <div class="response-meta">
+                        <span class="responder-tag"><%= sub.submitter_name || 'Anonymous' %></span>
+                        <span class="response-date"><%= new Date(sub.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></span>
+                      </div>
+                    </div>
                   <% } %>
-                </span>
-                <span class="feedback-date">
-                  <%= new Date(sub.submitted_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) %>
-                </span>
+                <% }) %>
               </div>
-
-              <div class="feedback-sections">
-                <div class="fb-item">
-                  <h4>✨ What's working well</h4>
-                  <p><%= sub.what_working_well %></p>
-                </div>
-                <div class="fb-item">
-                  <h4>💪 Strengths to lean into</h4>
-                  <p><%= sub.strengths %></p>
-                </div>
-                <div class="fb-item">
-                  <h4>🌱 Growth opportunities</h4>
-                  <p><%= sub.growth_opportunities %></p>
-                </div>
-                <div class="fb-item">
-                  <h4>🔧 Actionable suggestions</h4>
-                  <p><%= sub.actionable_suggestions %></p>
-                </div>
-                <div class="fb-item">
-                  <h4>🤝 Collaboration & team experience</h4>
-                  <p><%= sub.collaboration %></p>
-                </div>
-                <div class="fb-item">
-                  <h4>🚀 Looking ahead</h4>
-                  <p><%= sub.looking_ahead %></p>
-                </div>
-                <% if (sub.anything_else) { %>
-                  <div class="fb-item">
-                    <h4>💬 Anything else</h4>
-                    <p><%= sub.anything_else %></p>
-                  </div>
-                <% } %>
-
-                <% if ((sub.support_offers && sub.support_offers.length > 0) || sub.support_other) { %>
-                  <div class="fb-item fb-support">
-                    <h4>🎁 Support they offered</h4>
-                    <% if (sub.support_offers && sub.support_offers.length > 0) { %>
-                      <ul class="support-tags">
-                        <% sub.support_offers.forEach(offer => { %>
-                          <li class="support-tag"><%= offer %></li>
-                        <% }) %>
-                      </ul>
-                    <% } %>
-                    <% if (sub.support_other) { %>
-                      <p class="support-other-text">💬 <%= sub.support_other %></p>
-                    <% } %>
-                  </div>
-                <% } %>
-
-              </div>
-
             </div>
           <% }) %>
+
+          <% const anythingElseResponses = submissions.filter(s => s.anything_else); %>
+          <% if (anythingElseResponses.length > 0) { %>
+            <div class="report-section card">
+              <h3 class="report-section-title">
+                <span class="report-icon">💬</span>Anything else
+              </h3>
+              <div class="responses-list">
+                <% anythingElseResponses.forEach(sub => { %>
+                  <div class="response-item">
+                    <p class="response-text"><%= sub.anything_else %></p>
+                    <div class="response-meta">
+                      <span class="responder-tag"><%= sub.submitter_name || 'Anonymous' %></span>
+                      <span class="response-date"><%= new Date(sub.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></span>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            </div>
+          <% } %>
         </div>
+
+        <%
+          const supportMap = new Map();
+          submissions.forEach(sub => {
+            if (sub.support_offers && sub.support_offers.length > 0) {
+              sub.support_offers.forEach(offer => {
+                if (!supportMap.has(offer)) supportMap.set(offer, []);
+                supportMap.get(offer).push(sub.submitter_name || 'Anonymous');
+              });
+            }
+          });
+          const supportOthers = submissions.filter(s => s.support_other);
+          const hasSupportData = supportMap.size > 0 || supportOthers.length > 0;
+        %>
+
+        <% if (hasSupportData) { %>
+          <div class="card support-hub">
+            <h3 class="report-section-title">
+              <span class="report-icon">🎁</span>Support on offer
+            </h3>
+            <p class="support-hub-intro">Your colleagues are ready to help — here's what they've offered.</p>
+
+            <% if (supportMap.size > 0) { %>
+              <div class="support-grid">
+                <% supportMap.forEach((names, offer) => { %>
+                  <div class="support-offer-card">
+                    <div class="offer-top">
+                      <span class="offer-text"><%= offer %></span>
+                      <span class="offer-count"><%= names.length %></span>
+                    </div>
+                    <div class="offer-givers">
+                      <% names.forEach(name => { %>
+                        <span class="giver-tag"><%= name %></span>
+                      <% }) %>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <% if (supportOthers.length > 0) { %>
+              <div class="support-others-list">
+                <h4 class="support-others-label">✏️ Custom offers</h4>
+                <% supportOthers.forEach(sub => { %>
+                  <div class="support-other-item">
+                    <span class="support-other-body"><%= sub.support_other %></span>
+                    <span class="giver-tag"><%= sub.submitter_name || 'Anonymous' %></span>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        <% } %>
+
       <% } %>
     </section>
 
@@ -167,7 +218,6 @@
       try {
         await navigator.clipboard.writeText(text);
       } catch (e) {
-        // fallback for older browsers
         input.focus();
         input.select();
         input.setSelectionRange(0, 99999);
