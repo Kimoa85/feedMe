@@ -179,7 +179,10 @@ app.post('/generate-link', requireAuth, async (req, res) => {
   const token = uuidv4();
   await db.createFeedbackLink(req.session.userId, token);
   req.session.newToken = token;
-  res.redirect('/dashboard');
+  req.session.save((err) => {
+    if (err) console.error('Session save error:', err);
+    res.redirect('/dashboard');
+  });
 });
 
 // GET /forgot
