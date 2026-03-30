@@ -13,6 +13,16 @@ const db = require('./db');
 const app = express();
 const PgSession = connectPg(session);
 
+// Refuse to start in production without a real session secret
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('FATAL: SESSION_SECRET environment variable is not set. Refusing to start.');
+    process.exit(1);
+  } else {
+    console.warn('WARNING: SESSION_SECRET not set — using insecure default. Set this before deploying!');
+  }
+}
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.set('trust proxy', 1); // Required for secure cookies behind Railway's proxy
@@ -47,6 +57,11 @@ app.use(session({
   }
 }));
 
+// Wrap async route handlers so any thrown error goes to the global error handler
+function asyncHandler(fn) {
+  return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+}
+
 function requireAuth(req, res, next) {
   if (req.session.userId) return next();
   res.redirect('/');
@@ -62,7 +77,7 @@ const loginLimiter = rateLimit({
 });
 
 const signupLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000,
   max: 10,
   handler: (req, res) => res.render('login', {
     error: 'Too many sign up attempts. Please try again later.',
@@ -97,7 +112,7 @@ app.get('/', (req, res) => {
 });
 
 // POST /login
-app.post('/login', loginLimiter, async (req, res) => {
+app.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
     return res.render('login', { error: 'Please enter your email and password.', success: null, tab: 'login' });
@@ -116,10 +131,10 @@ app.post('/login', loginLimiter, async (req, res) => {
     if (err) return res.render('login', { error: 'Login failed. Please try again.', success: null, tab: 'login' });
     res.redirect('/dashboard');
   });
-});
+}));
 
 // POST /signup
-app.post('/signup', signupLimiter, async (req, res) => {
+app.post('/signup', signupLimiter, asyncHandler(async (req, res) => {
   const { display_name, email, password, password_confirm } = req.body;
 
   if (!display_name || !email || !password)
@@ -136,34 +151,35 @@ app.post('/signup', signupLimiter, async (req, res) => {
   if (existingUser && existingUser.password_hash)
     return res.render('login', { error: 'An account with that email already exists. Try logging in instead.', success: null, tab: 'signup' });
 
-  try {
-    const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(password, 12);
 
-    if (existingUser && !existingUser.password_hash) {
-      // Legacy account — upgrade it with a password
-      await db.updatePassword(existingUser.id, passwordHash);
-      req.session.userId = existingUser.id;
-      req.session.displayName = existingUser.display_name;
-    } else {
-      const user = await db.createUser(display_name.trim(), email.trim().toLowerCase(), passwordHash);
-      req.session.userId = user.id;
-      req.session.displayName = display_name.trim();
-    }
-
-    res.redirect('/dashboard');
-  } catch {
-    res.render('login', { error: 'Something went wrong. Please try again.', success: null, tab: 'signup' });
+  if (existingUser && !existingUser.password_hash) {
+    // Legacy account — upgrade with a password
+    await db.updatePassword(existingUser.id, passwordHash);
+    req.session.userId = existingUser.id;
+    req.session.displayName = existingUser.display_name;
+  } else {
+    const user = await db.createUser(display_name.trim(), email.trim().toLowerCase(), passwordHash);
+    req.session.userId = user.id;
+    req.session.displayName = display_name.trim();
   }
-});
+
+  req.session.save((err) => {
+    if (err) return res.render('login', { error: 'Something went wrong. Please try again.', success: null, tab: 'signup' });
+    res.redirect('/dashboard');
+  });
+}));
 
 // GET /logout
 app.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/');
+  req.session.destroy((err) => {
+    if (err) console.error('Session destroy error:', err);
+    res.redirect('/');
+  });
 });
 
 // GET /dashboard
-app.get('/dashboard', requireAuth, async (req, res) => {
+app.get('/dashboard', requireAuth, asyncHandler(async (req, res) => {
   const [user, submissions] = await Promise.all([
     db.getUserById(req.session.userId),
     db.getSubmissionsByUserId(req.session.userId)
@@ -172,10 +188,10 @@ app.get('/dashboard', requireAuth, async (req, res) => {
   delete req.session.newToken;
   const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
   res.render('dashboard', { user, submissions, newToken, baseUrl });
-});
+}));
 
 // POST /generate-link
-app.post('/generate-link', requireAuth, async (req, res) => {
+app.post('/generate-link', requireAuth, asyncHandler(async (req, res) => {
   const token = uuidv4();
   await db.createFeedbackLink(req.session.userId, token);
   req.session.newToken = token;
@@ -183,7 +199,7 @@ app.post('/generate-link', requireAuth, async (req, res) => {
     if (err) console.error('Session save error:', err);
     res.redirect('/dashboard');
   });
-});
+}));
 
 // GET /forgot
 app.get('/forgot', (req, res) => {
@@ -191,7 +207,7 @@ app.get('/forgot', (req, res) => {
 });
 
 // POST /forgot
-app.post('/forgot', forgotLimiter, async (req, res) => {
+app.post('/forgot', forgotLimiter, asyncHandler(async (req, res) => {
   const { email } = req.body;
   if (!email) return res.render('forgot', { error: 'Please enter your email.', success: null });
 
@@ -207,7 +223,7 @@ app.post('/forgot', forgotLimiter, async (req, res) => {
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
   await db.createResetToken(user.id, token, expiresAt);
 
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
   const resetUrl = `${baseUrl}/reset/${token}`;
 
   try {
@@ -229,17 +245,17 @@ app.post('/forgot', forgotLimiter, async (req, res) => {
   } catch {
     res.render('forgot', { error: 'Failed to send email. Please try again.', success: null });
   }
-});
+}));
 
 // GET /reset/:token
-app.get('/reset/:token', async (req, res) => {
+app.get('/reset/:token', asyncHandler(async (req, res) => {
   const record = await db.getResetToken(req.params.token);
   if (!record) return res.render('reset', { token: null, error: 'This reset link is invalid or has expired.' });
   res.render('reset', { token: req.params.token, error: null });
-});
+}));
 
 // POST /reset/:token
-app.post('/reset/:token', async (req, res) => {
+app.post('/reset/:token', asyncHandler(async (req, res) => {
   const record = await db.getResetToken(req.params.token);
   if (!record) return res.render('reset', { token: null, error: 'This reset link is invalid or has expired.' });
 
@@ -254,19 +270,19 @@ app.post('/reset/:token', async (req, res) => {
   await db.markResetTokenUsed(req.params.token);
 
   res.render('login', { error: null, success: 'Password updated! You can now log in.', tab: 'login' });
-});
+}));
 
 // GET /f/:token
-app.get('/f/:token', async (req, res) => {
+app.get('/f/:token', asyncHandler(async (req, res) => {
   const link = await db.getLinkByToken(req.params.token);
   if (!link) return res.render('thankyou', { state: 'notfound' });
   if (link.used) return res.render('thankyou', { state: 'used' });
   const recipient = await db.getUserById(link.user_id);
   res.render('feedback', { token: req.params.token, recipient, error: null });
-});
+}));
 
 // POST /f/:token
-app.post('/f/:token', async (req, res) => {
+app.post('/f/:token', asyncHandler(async (req, res) => {
   const link = await db.getLinkByToken(req.params.token);
   if (!link) return res.render('thankyou', { state: 'notfound' });
   if (link.used) return res.render('thankyou', { state: 'used' });
@@ -274,8 +290,7 @@ app.post('/f/:token', async (req, res) => {
   const {
     what_working_well, strengths, growth_opportunities,
     actionable_suggestions, collaboration, looking_ahead,
-    anything_else, submitter_name, it_would_help,
-    support_offers, support_other
+    anything_else, submitter_name, support_offers, support_other
   } = req.body;
 
   if (!what_working_well || !strengths || !growth_opportunities ||
@@ -285,7 +300,7 @@ app.post('/f/:token', async (req, res) => {
   }
 
   const fields = [what_working_well, strengths, growth_opportunities, actionable_suggestions,
-    collaboration, looking_ahead, anything_else, it_would_help, support_other];
+    collaboration, looking_ahead, anything_else, support_other];
   if (fields.some(f => f && f.length > MAX_INPUT_LENGTH)) {
     const recipient = await db.getUserById(link.user_id);
     return res.render('feedback', { token: req.params.token, recipient, error: `Please keep each answer under ${MAX_INPUT_LENGTH} characters.` });
@@ -297,12 +312,24 @@ app.post('/f/:token', async (req, res) => {
   await db.createSubmission(link.id, {
     what_working_well, strengths, growth_opportunities,
     actionable_suggestions, collaboration, looking_ahead,
-    anything_else, submitter_name, it_would_help,
-    support_offers: offersArray, support_other
+    anything_else, submitter_name, support_offers: offersArray, support_other
   });
 
   await db.markLinkUsed(req.params.token);
   res.render('thankyou', { state: 'success' });
+}));
+
+// ─── GLOBAL ERROR HANDLER ────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.stack);
+  res.status(500).send(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>feedMe — Error</title>' +
+    '<style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#FFF0F5;}' +
+    '.box{text-align:center;padding:40px;max-width:400px;}h2{color:#FF69B4;}p{color:#7A5040;}</style></head>' +
+    '<body><div class="box"><h2>🍰 Something went wrong</h2>' +
+    '<p>We hit an unexpected error. Please try again or go back.</p>' +
+    '<a href="/" style="color:#FF69B4;">← Back to home</a></div></body></html>'
+  );
 });
 
 // ─── START ──────────────────────────────────────────────────────────

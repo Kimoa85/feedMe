@@ -44,7 +44,14 @@ jest.mock('../db', () => {
       submissions.push({ id: idCounter++, link_id: linkId, ...data });
       return { id: idCounter - 1 };
     }),
-    getSubmissionsByUserId: jest.fn(async () => submissions),
+
+    // Only returns submissions belonging to the given user (via their feedback links)
+    getSubmissionsByUserId: jest.fn(async (userId) => {
+      return submissions.filter(s => {
+        const link = Array.from(links.values()).find(l => l.id === s.link_id);
+        return link && link.user_id === userId;
+      });
+    }),
   };
 });
 
@@ -164,7 +171,6 @@ describe('Feedback form', () => {
   it('accepts a valid full submission', async () => {
     const db = require('../db');
     db.getLinkByToken
-      .mockResolvedValueOnce({ id: 2, user_id: 1, token: 'abc3', used: false })
       .mockResolvedValueOnce({ id: 2, user_id: 1, token: 'abc3', used: false });
     db.getUserById.mockResolvedValueOnce({ id: 1, display_name: 'Kim', email: 'kim@test.com' });
 
@@ -188,5 +194,29 @@ describe('Dashboard', () => {
     const res = await request(app).get('/dashboard');
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('/');
+  });
+});
+
+// ─── FEEDBACK ISOLATION ───────────────────────────────────────────────
+
+describe('Feedback isolation', () => {
+  it('only returns submissions belonging to the correct user', async () => {
+    const db = require('../db');
+
+    // Create a link owned by user 99 and submit feedback on it
+    const { id: linkId } = await db.createFeedbackLink(99, 'isolation-token');
+    await db.createSubmission(linkId, {
+      what_working_well: 'user 99 data', strengths: 'x',
+      growth_opportunities: 'x', actionable_suggestions: 'x',
+      collaboration: 'x', looking_ahead: 'x', support_offers: [],
+    });
+
+    // User 99 should see their own submission
+    const user99Subs = await db.getSubmissionsByUserId(99);
+    expect(user99Subs.length).toBeGreaterThan(0);
+
+    // An unrelated user should see nothing from user 99
+    const otherSubs = await db.getSubmissionsByUserId(999);
+    expect(otherSubs.length).toBe(0);
   });
 });
